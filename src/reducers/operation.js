@@ -25,6 +25,7 @@ export const OPERATION_INITIALSTATE = {
     lineAngle: 0,
     margin: 0,
     passes: 1,
+    delay: 0,
     cutWidth: 0,
     toolSpeed: 0,
     stepOver: 40,

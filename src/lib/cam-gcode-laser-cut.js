@@ -32,8 +32,10 @@ import { getGenerator } from "./action2gcode/gcode-generator";
 //      gcodeToolOn:   Laser on (may be empty)
 //      gcodeToolOff:  Laser off (may be empty)
 //      gcodeSMaxValue: Max S value
+//      delay:          Power-On Delay
+
 export function getLaserCutGcode(props) {
-    let { paths, generator, scale, offsetX, offsetY, decimal, cutFeed, laserPower, passes,
+    let { paths, generator, scale, offsetX, offsetY, decimal, cutFeed, laserPower, passes, delay,
         useA, aAxisDiameter,
         tabGeometry, gcodeToolOn, gcodeToolOff,
         gcodeLaserIntensity, gcodeLaserIntensitySeparateLine, gcodeSMinValue, gcodeSMaxValue,
@@ -126,8 +128,8 @@ export function getLaserCutGcode(props) {
                     gcode += `; Pass Z Height ${zHeight}mm (Offset: ${useZ.offsetZ}mm)\r\n`;
                     gcode += 'G0 Z' + zHeight.toFixed(decimal) + '\r\n\r\n';
                 }
-
                 gcode += generator.toolOn(gcodeToolOn, {i:laserOnS});
+                gcode += `${props.delay > 0 ? `M3 ${laserOnS}\nG4 P${props.delay}\n`: ''}`;
 
                 for (let i = 1; i < selectedPath.length; ++i) {
                     if (i == 1 && gcodeLaserIntensitySeparateLine)
@@ -145,6 +147,7 @@ export function getLaserCutGcode(props) {
                 }
 
                 gcode += generator.toolOff(gcodeToolOff, {i:laserOnS});
+                gcode += `${props.delay > 0 ? `G4 P0\nM5 S0\n`: ''}`;
             }
         }
 
@@ -203,6 +206,11 @@ export function getLaserCutGcodeFromOp(settings, opIndex, op, geometry, openGeom
         }
     }
 
+    if (op.delay < 0) {
+        showAlert("Delay must be greater or equal to 0", "danger");
+        ok = false;
+    }
+
     if (!ok) {
         done(false);
     }
@@ -236,6 +244,7 @@ export function getLaserCutGcodeFromOp(settings, opIndex, op, geometry, openGeom
         "\r\n; Type:         " + op.type +
         "\r\n; Paths:        " + camPaths.length +
         "\r\n; Passes:       " + op.passes +
+        "\r\n; Delay:       " + op.delay +
         "\r\n; Cut rate:     " + op.cutRate + ' ' + settings.toolFeedUnits +
         "\r\n;\r\n";
 
@@ -253,6 +262,7 @@ export function getLaserCutGcodeFromOp(settings, opIndex, op, geometry, openGeom
         cutFeed: op.cutRate * feedScale,
         laserPower: op.laserPower,
         passes: op.passes,
+        delay: op.delay,
         useA: op.useA,
         useZ: settings.machineZEnabled ? {
             startZ: Number(op.startHeight),
